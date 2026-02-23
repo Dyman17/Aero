@@ -920,14 +920,12 @@ async function updatePredictionData() {
 }
 
 function updatePredictionTimer() {
-  const countdown = 300;
+  const countdown = 30;
   let seconds = countdown;
   
   const timer = setInterval(() => {
     seconds--;
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    document.getElementById('almatyNextUpdate').textContent = `Обновление через ${minutes}:${secs.toString().padStart(2, '0')}`;
+    document.getElementById('almatyNextUpdate').textContent = `Обновление через ${seconds}с`;
     
     if (seconds <= 0) {
       clearInterval(timer);
@@ -977,8 +975,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Обновляем данные с Firebase каждые 5 секунд
   setInterval(updateRealtimeData, 5000);
   
-  // Обновляем предикты каждые 5 минут
-  setInterval(updatePredictionData, 300000);
+  // Обновляем предикты каждые 30 секунд
+  setInterval(updatePredictionData, 30000);
   
   // Закрываем модалку по клику вне её
   window.onclick = function(event) {
