@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Meteo Kazakhstan — Микро-погода с точностью до вашего района</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Animated Background Particles -->
+    <div class="particles-bg" id="particlesBg"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-satellite"></i>
+                    <span>AI-Meteo</span>
+                </div>
+                <div class="header-info">
+                    <div class="current-time" id="currentTime"></div>
+                    <div class="system-status">
+                        <span class="status-indicator"></span>
+                        <span>Онлайн · 2 станции активны</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title fade-in">Микро-погода с точностью до вашего района</h1>
+                <p class="hero-subtitle fade-in delay-1">Нейросетевой прогноз осадков на 3 часа с точностью 85% для Астаны и Алматы</p>
+                <button class="btn-primary fade-in delay-2" onclick="scrollToMap()">
+                    <i class="fas fa-map-marked-alt"></i>
+                    Смотреть на карте
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Real-time Data Cards -->
+    <section class="realtime-section">
+        <div class="container">
+            <h2 class="section-title">Данные в реальном времени</h2>
+            <div class="realtime-grid">
+                <!-- Astana Card -->
+                <div class="realtime-card fade-in" id="astanaCard">
+                    <div class="card-header">
+                        <h3><i class="fas fa-map-marker-alt"></i> Астана</h3>
+                        <span class="update-badge" id="astanaUpdate">Обновлено</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="main-metric">
+                            <div class="metric-value" id="astanaTemp">26.0°C</div>
+                            <div class="metric-label">Температура</div>
+                        </div>
+                        <div class="metrics-row">
+                            <div class="metric-item">
+                                <i class="fas fa-droplet"></i>
+                                <span class="metric-value-small" id="astanaHumidity">40%</span>
+                                <span class="metric-label-small">Влажность</span>
+                            </div>
+                            <div class="metric-item">
+                                <i class="fas fa-gauge"></i>
+                                <span class="metric-value-small" id="astanaPressure">1010</span>
+                                <span class="metric-label-small">гПа</span>
+                            </div>
+                            <div class="metric-item">
+                                <i class="fas fa-sun"></i>
+                                <span class="metric-value-small" id="astanaLight">40</span>
+                                <span class="metric-label-small">лк</span>
+                            </div>
+                        </div>
+                        <div class="mini-chart-container">
+                            <canvas id="astanaMiniChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Almaty Card -->
+                <div class="realtime-card fade-in delay-1" id="almatyCard">
+                    <div class="card-header">
+                        <h3><i class="fas fa-map-marker-alt"></i> Алматы</h3>
+                        <span class="update-badge" id="almatyUpdate">Обновлено</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="main-metric">
+                            <div class="metric-value" id="almatyTemp">24.0°C</div>
+                            <div class="metric-label">Температура</div>
+                        </div>
+                        <div class="metrics-row">
+                            <div class="metric-item">
+                                <i class="fas fa-droplet"></i>
+                                <span class="metric-value-small" id="almatyHumidity">55%</span>
+                                <span class="metric-label-small">Влажность</span>
+                            </div>
+                            <div class="metric-item">
+                                <i class="fas fa-gauge"></i>
+                                <span class="metric-value-small" id="almatyPressure">1005</span>
+                                <span class="metric-label-small">гПа</span>
+                            </div>
+                            <div class="metric-item">
+                                <i class="fas fa-sun"></i>
+                                <span class="metric-value-small" id="almatyLight">35</span>
+                                <span class="metric-label-small">лк</span>
+                            </div>
+                        </div>
+                        <div class="mini-chart-container">
+                            <canvas id="almatyMiniChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Map Section -->
+    <section class="map-section" id="mapSection">
+        <div class="container-full">
+            <h2 class="section-title">Интерактивная карта станций</h2>
+            <div id="map" class="map-container"></div>
+        </div>
+    </section>
+
+    <!-- Weather Predictions Section -->
+    <section class="predictions-section">
+        <div class="container">
+            <h2 class="section-title">Предикаты погоды</h2>
+            <p class="section-subtitle">Умные прогнозы на основе нейросетевого анализа данных с датчиков</p>
+            
+            <div class="predictions-grid">
+                <!-- Astana Prediction Card -->
+                <div class="prediction-card fade-in" id="astanaPredictionCard">
+                    <div class="prediction-header">
+                        <div class="prediction-city">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <h3>Астана</h3>
+                        </div>
+                        <div class="prediction-time" id="astanaNextUpdate">Обновление через 10с</div>
+                    </div>
+                    
+                    <div class="prediction-main">
+                        <div class="prediction-icon" id="astanaPredictionIcon">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div class="prediction-status" id="astanaPredictionStatus">
+                            <div class="status-text">Ясная погода</div>
+                            <div class="status-subtitle">Осадков не ожидается</div>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-details">
+                        <div class="detail-item">
+                            <i class="fas fa-cloud-rain"></i>
+                            <span class="detail-label">Вероятность осадков</span>
+                            <span class="detail-value" id="astanaRainChance">15%</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-wind"></i>
+                            <span class="detail-label">Индекс изменений</span>
+                            <span class="detail-value" id="astanaChangeIndex">Низкий</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span class="detail-label">Прогноз на</span>
+                            <span class="detail-value">3 часа</span>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-forecast">
+                        <h4>Почасовой прогноз</h4>
+                        <div class="hourly-forecast" id="astanaHourlyForecast">
+                            <!-- Будет заполнено JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-confidence">
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="astanaConfidence" style="width: 85%"></div>
+                        </div>
+                        <div class="confidence-text">Точность прогноза: <strong>85%</strong></div>
+                    </div>
+                </div>
+                
+                <!-- Almaty Prediction Card -->
+                <div class="prediction-card fade-in delay-1" id="almatyPredictionCard">
+                    <div class="prediction-header">
+                        <div class="prediction-city">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <h3>Алматы</h3>
+                        </div>
+                        <div class="prediction-time" id="almatyNextUpdate">Обновление через 10с</div>
+                    </div>
+                    
+                    <div class="prediction-main">
+                        <div class="prediction-icon" id="almatyPredictionIcon">
+                            <i class="fas fa-cloud-sun"></i>
+                        </div>
+                        <div class="prediction-status" id="almatyPredictionStatus">
+                            <div class="status-text">Переменная облачность</div>
+                            <div class="status-subtitle">Возможны кратковременные осадки</div>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-details">
+                        <div class="detail-item">
+                            <i class="fas fa-cloud-rain"></i>
+                            <span class="detail-label">Вероятность осадков</span>
+                            <span class="detail-value" id="almatyRainChance">45%</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-wind"></i>
+                            <span class="detail-label">Индекс изменений</span>
+                            <span class="detail-value" id="almatyChangeIndex">Средний</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span class="detail-label">Прогноз на</span>
+                            <span class="detail-value">3 часа</span>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-forecast">
+                        <h4>Почасовой прогноз</h4>
+                        <div class="hourly-forecast" id="almatyHourlyForecast">
+                            <!-- Будет заполнено JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-confidence">
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="almatyConfidence" style="width: 85%"></div>
+                        </div>
+                        <div class="confidence-text">Точность прогноза: <strong>85%</strong></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Prediction Legend -->
+            <div class="prediction-legend">
+                <h3>Как читать прогноз</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <i class="fas fa-sun" style="color: var(--success);"></i>
+                        <span><strong>0-30%</strong> — Ясно, осадков не ожидается</span>
+                    </div>
+                    <div class="legend-item">
+                        <i class="fas fa-cloud-sun" style="color: var(--warning);"></i>
+                        <span><strong>30-60%</strong> — Переменная облачность, возможны осадки</span>
+                    </div>
+                    <div class="legend-item">
+                        <i class="fas fa-cloud-rain" style="color: var(--danger);"></i>
+                        <span><strong>60-100%</strong> — Ожидаются осадки</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Important Section -->
+    <section class="why-section">
+        <div class="container">
+            <h2 class="section-title">Почему это важно для Казахстана</h2>
+            <p class="why-text">
+                В Астане погода меняется каждые 30 минут, а в Алматы — каждые 15 из-за гор. 
+                Глобальные прогнозы бесполезны. AI-Meteo знает точно.
+            </p>
+            <div class="why-icons">
+                <div class="why-icon-item">
+                    <i class="fas fa-wind"></i>
+                    <span>Степные ветра</span>
+                </div>
+                <div class="why-icon-item">
+                    <i class="fas fa-mountain"></i>
+                    <span>Горный климат</span>
+                </div>
+                <div class="why-icon-item">
+                    <i class="fas fa-sun"></i>
+                    <span>Контрасты</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-section">
+        <div class="container">
+            <h2 class="section-title">Как это работает</h2>
+            <div class="how-grid">
+                <div class="how-card fade-in">
+                    <div class="how-icon">
+                        <i class="fas fa-tower-broadcast"></i>
+                    </div>
+                    <h3>Датчики ESP32</h3>
+                    <p>Собирают данные о температуре, влажности, давлении и освещенности в Астане и Алматы</p>
+                </div>
+                <div class="how-card fade-in delay-1">
+                    <div class="how-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>Нейросеть</h3>
+                    <p>Анализирует данные и предсказывает осадки с точностью 85% на ближайшие 3 часа</p>
+                </div>
+                <div class="how-card fade-in delay-2">
+                    <div class="how-icon">
+                        <i class="fas fa-mobile-screen"></i>
+                    </div>
+                    <h3>Визуализация</h3>
+                    <p>Вы видите прогноз на интерактивной карте для своего района в реальном времени</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Station Popup Modal -->
+    <div id="stationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+</html>
