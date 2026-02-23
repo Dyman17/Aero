@@ -99,7 +99,7 @@ ${JSON.stringify(cachedLatest, null, 2)}`;
 
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 500,
         temperature: 0.3
