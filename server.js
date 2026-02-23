@@ -98,12 +98,14 @@ app.get('/api/predict', async (req, res) => {
 ${JSON.stringify(cachedLatest, null, 2)}`;
 
     try {
-      const response = await openai.responses.create({
-        model: "o4-mini",
-        input: prompt
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 500,
+        temperature: 0.3
       });
 
-      const text = response.output_text || response.output[0]?.content[0]?.text || '';
+      const text = response.choices[0]?.message?.content || '';
       const prediction = JSON.parse(text.trim());
       
       // Валидация и дополнение данных
