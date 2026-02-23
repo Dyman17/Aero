@@ -920,7 +920,7 @@ async function updatePredictionData() {
 }
 
 function updatePredictionTimer() {
-  const countdown = 30;
+  const countdown = 40;
   let seconds = countdown;
   
   const timer = setInterval(() => {
@@ -975,8 +975,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Обновляем данные с Firebase каждые 5 секунд
   setInterval(updateRealtimeData, 5000);
   
-  // Обновляем предикты каждые 30 секунд
-  setInterval(updatePredictionData, 30000);
+  // Обновляем предикты каждые 40 секунд
+  setInterval(updatePredictionData, 40000);
   
   // Закрываем модалку по клику вне её
   window.onclick = function(event) {
