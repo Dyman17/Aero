@@ -117,21 +117,71 @@ function triggerAlert(prediction) {
 }
 
 // ===========================
+// Background Particles
+// ===========================
+function createParticles() {
+  const container = document.getElementById('particlesBg');
+  if (!container) return;
+  
+  const particleCount = 50;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    
+    // Случайные параметры
+    const size = Math.random() * 4 + 2;
+    const left = Math.random() * 100;
+    const animationDuration = Math.random() * 20 + 10;
+    const delay = Math.random() * 5;
+    
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.left = `${left}%`;
+    particle.style.top = Math.random() * 100 + '%';
+    particle.style.animationDelay = `${delay}s`;
+    particle.style.animationDuration = `${animationDuration}s`;
+    
+    container.appendChild(particle);
+  }
+}
+
+// ===========================
+// Station Status Functions
+// ===========================
+function updateStationStatus(isOnline, stationCount = 1) {
+  const indicator = document.getElementById('statusIndicator');
+  const text = document.getElementById('statusText');
+  
+  if (isOnline && stationCount > 0) {
+    indicator.style.backgroundColor = '#4ade80';
+    text.textContent = `Онлайн · ${stationCount} станция активна`;
+  } else {
+    indicator.style.backgroundColor = '#ef4444';
+    text.textContent = 'Станция оффлайн';
+  }
+}
+
+// ===========================
 // Real-time Data Fetching
 // ===========================
 async function fetchLatestData() {
   try {
+    console.log('🔄 Запрос данных с сервера...');
     const response = await fetch('/api/latest');
     const data = await response.json();
     
+    console.log('📊 Получены данные:', data);
+    
     if (!data || Object.keys(data).length === 0) {
-      console.warn('Нет данных с Firebase - станция оффлайн');
+      console.warn('❌ Нет данных с Firebase - станция оффлайн');
       return null;
     }
     
+    console.log('✅ Данные успешно получены');
     return data;
   } catch (error) {
-    console.error('Ошибка получения данных:', error);
+    console.error('❌ Ошибка получения данных:', error);
     return null;
   }
 }
@@ -198,29 +248,56 @@ function scrollToMap() {
 // UI Update Functions
 // ===========================
 function updateRealtimeCard(city, data) {
-  const prefix = city.toLowerCase();
+  // Используем 'almaty' независимо от названия города
+  const prefix = 'almaty';
   const card = document.getElementById(`${prefix}Card`);
+  
+  if (!card) {
+    console.error('❌ Карточка не найдена:', `${prefix}Card`);
+    return;
+  }
+  
+  console.log('🔄 Обновляем карточку:', prefix, 'с данными:', data);
   
   // Добавляем анимацию обновления
   card.classList.add('updating');
   setTimeout(() => card.classList.remove('updating'), 500);
   
-  // Обновляем значения
-  document.getElementById(`${prefix}Temp`).textContent = data.bme280_temperature.toFixed(1) + '°C';
-  document.getElementById(`${prefix}Humidity`).textContent = data.bme280_humidity.toFixed(1) + '%';
-  document.getElementById(`${prefix}Pressure`).textContent = Math.round(data.bme280_pressure);
-  document.getElementById(`${prefix}Light`).textContent = data.bh1750_illuminance.toFixed(1);
-  
-  // Обновляем бейдж
-  const badge = document.getElementById(`${prefix}Update`);
-  badge.textContent = 'Обновлено';
-  badge.style.animation = 'none';
-  setTimeout(() => badge.style.animation = 'fadeIn 0.3s', 10);
+  try {
+    // Обновляем значения
+    const tempElement = document.getElementById(`${prefix}Temp`);
+    const humidityElement = document.getElementById(`${prefix}Humidity`);
+    const pressureElement = document.getElementById(`${prefix}Pressure`);
+    const lightElement = document.getElementById(`${prefix}Light`);
+    
+    if (tempElement) tempElement.textContent = data.bme280_temperature.toFixed(1) + '°C';
+    if (humidityElement) humidityElement.textContent = data.bme280_humidity.toFixed(1) + '%';
+    if (pressureElement) pressureElement.textContent = Math.round(data.bme280_pressure);
+    if (lightElement) lightElement.textContent = data.bh1750_illuminance.toFixed(1);
+    
+    // Обновляем бейдж
+    const badge = document.getElementById(`${prefix}Update`);
+    if (badge) {
+      badge.textContent = 'Обновлено';
+      badge.style.animation = 'none';
+      setTimeout(() => badge.style.animation = 'fadeIn 0.3s', 10);
+    }
+    
+    console.log('✅ Карточка успешно обновлена');
+  } catch (error) {
+    console.error('❌ Ошибка обновления карточки:', error);
+  }
 }
 
 function updateMiniChart(city, history) {
+  // Используем 'almaty' для графика
   const prefix = city.toLowerCase();
   const ctx = document.getElementById(`${prefix}MiniChart`);
+  
+  if (!ctx) {
+    console.error('❌ График не найден:', `${prefix}MiniChart`);
+    return;
+  }
   
   if (charts[prefix]) {
     charts[prefix].destroy();
@@ -230,6 +307,8 @@ function updateMiniChart(city, history) {
   const labels = last5.map((_, i) => `-${(5-i)*10}мин`);
   const tempData = last5.map(d => d.bme280_temperature.toFixed(1));
   const humidityData = last5.map(d => d.bme280_humidity.toFixed(1));
+  
+  console.log('📊 Создаем график с данными:', { tempData, humidityData });
   
   charts[prefix] = new Chart(ctx, {
     type: 'line',
@@ -259,24 +338,32 @@ function updateMiniChart(city, history) {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          display: true,
-          position: 'bottom',
-          labels: {
-            color: '#8E9AB0',
-            font: { size: 10 }
-          }
+          display: false
         }
       },
       scales: {
         y: {
-          display: true,
-          grid: { color: 'rgba(0, 240, 255, 0.1)' },
-          ticks: { color: '#8E9AB0', font: { size: 10 } }
+          beginAtZero: false,
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          },
+          ticks: {
+            color: '#8E9AB0',
+            font: {
+              size: 10
+            }
+          }
         },
         x: {
-          display: true,
-          grid: { display: false },
-          ticks: { color: '#8E9AB0', font: { size: 10 } }
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          },
+          ticks: {
+            color: '#8E9AB0',
+            font: {
+              size: 10
+            }
+          }
         }
       }
     }
@@ -344,29 +431,42 @@ function updatePredictionCard(cityId, prediction, history) {
   
   if (!card) return;
   
-  // Если нет GPT предикта, используем fallback
+  // Если нет предикта, показываем загрузку
   if (!prediction) {
-    const latestData = history[history.length - 1];
-    if (latestData) {
-      const localProbability = calculateRainProbability(cityId, latestData, history);
-      const fallbackPrediction = {
-        rainChance: localProbability,
-        summary: getRainStatus(localProbability).text,
-        changeIndex: localProbability > 60 ? 'Высокий' : localProbability > 30 ? 'Средний' : 'Низкий',
-        confidence: 70
-      };
-      updatePredictionCard(cityId, fallbackPrediction, history);
-    }
+    const iconElement = document.getElementById(`${prefix}PredictionIcon`);
+    const statusElement = document.getElementById(`${prefix}PredictionStatus`);
+    const rainChanceElement = document.getElementById(`${prefix}RainChance`);
+    const changeIndexElement = document.getElementById(`${prefix}ChangeIndex`);
+    const confidenceElement = document.getElementById(`${prefix}Confidence`);
+    const confidenceTextElement = document.getElementById(`${prefix}ConfidenceText`);
+    
+    iconElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    statusElement.querySelector('.status-text').textContent = 'Ожидание данных...';
+    statusElement.querySelector('.status-subtitle').textContent = 'Проверка соединения';
+    rainChanceElement.textContent = '--%';
+    changeIndexElement.textContent = '--';
+    confidenceElement.style.width = '0%';
+    confidenceTextElement.textContent = '--%';
+    
+    // Очищаем почасовой прогноз
+    const hourlyContainer = document.getElementById(`${prefix}HourlyForecast`);
+    hourlyContainer.innerHTML = '<div class="hourly-item"><span>Загрузка...</span></div>';
+    
     return;
   }
   
-  // Используем данные от GPT как основной источник
+  // Обновляем иконку погоды
+  const iconMap = {
+    'clear': 'fas fa-sun',
+    'possible': 'fas fa-cloud-sun', 
+    'rain': 'fas fa-cloud-rain'
+  };
+  
   const rainChance = prediction.rainChance || 0;
   const rainStatus = getRainStatus(rainChance);
   
-  // Обновляем иконку и статус
   const iconElement = document.getElementById(`${prefix}PredictionIcon`);
-  iconElement.innerHTML = `<i class="${rainStatus.icon}"></i>`;
+  iconElement.innerHTML = `<i class="${iconMap[rainStatus.status]}"></i>`;
   iconElement.className = `prediction-icon ${rainStatus.status}`;
   
   // Обновляем текст статуса
@@ -381,9 +481,9 @@ function updatePredictionCard(cityId, prediction, history) {
   document.getElementById(`${prefix}ChangeIndex`).textContent = prediction.changeIndex || 'Низкий';
   
   // Обновляем уверенность
-  const confidence = prediction.confidence || 70;
+  const confidence = prediction.confidence || 0;
   document.getElementById(`${prefix}Confidence`).style.width = `${confidence}%`;
-  document.querySelector(`#${prefix}PredictionCard .confidence-text strong`).textContent = `${confidence}%`;
+  document.getElementById(`${prefix}ConfidenceText`).textContent = `${confidence}%`;
   
   // Генерируем почасовой прогноз
   const hourlyForecast = generateHourlyForecast(rainChance);
@@ -426,16 +526,19 @@ function updatePredictionTimers() {
 // Map Functions
 // ===========================
 function initMap() {
-  map = L.map('map', {
-    center: [48.0, 68.0], // Центр Казахстана
-    zoom: 5,
-    zoomControl: true,
-    scrollWheelZoom: true
-  });
+  // Инициализируем карту с центром на Казахстане
+  map = L.map('map').setView([48.0, 68.0], 6);
   
-  // Устанавливаем границы карты на Казахстан
-  const kazakhstanBounds = [[40.0, 46.0], [55.0, 87.0]]; // Юго-запад, север-восток
+  // Устанавливаем строгие границы для Казахстана
+  const kazakhstanBounds = [[40.0, 46.0], [55.0, 87.0]];
   map.setMaxBounds(kazakhstanBounds);
+  map.setMinZoom(5);
+  map.setMaxZoom(12);
+  
+  // Запрещаем выход за границы
+  map.on('dragend', function() {
+    map.panInsideBounds(kazakhstanBounds, { animate: true });
+  });
   
   // Базовые слои карты
   const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -446,27 +549,47 @@ function initMap() {
   // NASA спутниковые слои
   const currentDate = new Date().toISOString().split('T')[0];
   
-  const nasaTrueColor = L.tileLayer(
-    'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
-    'MODIS_Terra_CorrectedReflectance_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
-    {
-      time: currentDate,
-      attribution: 'NASA GIBS',
-      maxZoom: 9,
-      opacity: 0.8
-    }
-  );
+  // True Color (реальные цвета)
+  const nasaTrueColor = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_TrueColor/default/2024-02-23/{TileMatrixSet}/{z}/{y}/{x}.jpg`, {
+    attribution: 'NASA GIBS',
+    maxZoom: 12,
+    tileSize: 256
+  });
   
-  const nasaClouds = L.tileLayer(
-    'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
-    'MODIS_Terra_CloudFraction/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
-    {
-      time: currentDate,
-      attribution: 'NASA GIBS',
-      maxZoom: 9,
-      opacity: 0.7
-    }
-  );
+  // Clouds (облака)
+  const nasaClouds = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_Clouds/default/2024-02-23/{TileMatrixSet}/{z}/{y}/{x}.jpg`, {
+    attribution: 'NASA GIBS',
+    maxZoom: 12,
+    tileSize: 256
+  });
+  
+  // Thermal Infrared (тепловизор)
+  const nasaThermal = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_Thermal_Infrared/default/2024-02-23/{TileMatrixSet}/{z}/{y}/{x}.jpg`, {
+    attribution: 'NASA GIBS',
+    maxZoom: 12,
+    tileSize: 256
+  });
+  
+  // Water Vapor (водяной пар)
+  const nasaWaterVapor = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_Water_Vapor/default/2024-02-23/{TileMatrixSet}/{z}/{y}/{x}.jpg`, {
+    attribution: 'NASA GIBS',
+    maxZoom: 12,
+    tileSize: 256
+  });
+  
+  // Snow Cover (снежный покров)
+  const nasaSnow = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_Snow_Cover/default/2024-02-23/{TileMatrixSet}/{z}/{y}/{x}.jpg`, {
+    attribution: 'NASA GIBS',
+    maxZoom: 12,
+    tileSize: 256
+  });
+  
+  // Night Lights (ночные огни)
+  const nasaNightLights = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2024-02-23/{TileMatrixSet}/{z}/{y}/{x}.jpg`, {
+    attribution: 'NASA GIBS',
+    maxZoom: 12,
+    tileSize: 256
+  });
   
   // Добавляем базовый слой по умолчанию
   osmLayer.addTo(map);
@@ -475,7 +598,11 @@ function initMap() {
   const baseMaps = {
     "OpenStreetMap": osmLayer,
     "NASA Спутник (True Color)": nasaTrueColor,
-    "NASA Облака": nasaClouds
+    "NASA Облака": nasaClouds,
+    "NASA Тепловизор (Infrared)": nasaThermal,
+    "NASA Водяной пар": nasaWaterVapor,
+    "NASA Снежный покров": nasaSnow,
+    "NASA Ночные огни": nasaNightLights
   };
   
   L.control.layers(baseMaps, {}, {
@@ -743,19 +870,32 @@ function createParticles() {
 // Data Update Functions
 // ===========================
 async function updateRealtimeData() {
+  console.log('🔄 Обновление данных реального времени...');
   const latestData = await fetchLatestData();
   
   if (latestData) {
+    console.log('✅ Станция онлайн, обновляем UI');
+    // Обновляем статус - станция онлайн
+    updateStationStatus(true, 1);
+    
     // Обновляем данные для Алматы
     dataHistory.almaty.push(latestData);
     if (dataHistory.almaty.length > 10) dataHistory.almaty.shift();
     
+    console.log('📈 Обновляем карточку Алматы:', latestData);
     updateRealtimeCard('Алматы', latestData);
     updateMiniChart('almaty', dataHistory.almaty);
+  } else {
+    console.log('❌ Станция оффлайн');
+    // Станция оффлайн
+    updateStationStatus(false, 0);
   }
 }
 
 async function updatePredictionData() {
+  // Показываем статус загрузки
+  document.getElementById('almatyNextUpdate').textContent = 'Загрузка...';
+  
   const prediction = await fetchPrediction();
   
   if (prediction) {
@@ -769,6 +909,45 @@ async function updatePredictionData() {
     if (prediction.confidence >= 90) {
       triggerAlert(prediction);
     }
+    
+    // Обновляем таймер до следующего обновления
+    updatePredictionTimer();
+  } else {
+    // Показываем ошибку
+    document.getElementById('almatyNextUpdate').textContent = 'Ошибка загрузки';
+    updatePredictionCard('almaty', null, dataHistory.almaty);
+  }
+}
+
+function updatePredictionTimer() {
+  const countdown = 10;
+  let seconds = countdown;
+  
+  const timer = setInterval(() => {
+    seconds--;
+    document.getElementById('almatyNextUpdate').textContent = `Обновление через ${seconds}с`;
+    
+    if (seconds <= 0) {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
+// ===========================
+// Main Refresh Function
+// ===========================
+async function refreshAllData() {
+  try {
+    // Обновляем данные с Firebase
+    await updateRealtimeData();
+    
+    // Обновляем предикты с GPT
+    await updatePredictionData();
+    
+    console.log('Данные успешно обновлены');
+  } catch (error) {
+    console.error('Ошибка обновления данных:', error);
+    updateStationStatus(false, 0);
   }
 }
 
@@ -786,8 +965,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAlertSystem();
   
   // Первоначальная загрузка данных
-  await updateRealtimeData();
-  await updatePredictionData();
+  updateStationStatus(false, 0); // Начинаем с оффлайн статуса
+  await refreshAllData();
   
   // Обновляем время каждую секунду
   updateCurrentTime();
