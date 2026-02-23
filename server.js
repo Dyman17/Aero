@@ -59,25 +59,16 @@ app.get('/api/predict', async (req, res) => {
     }
     
     // Запрос к OpenAI (o4-mini) для анализа погоды
-    const prompt = `Ты — аналитическая погодная модель.
+    const prompt = `Данные: ${JSON.stringify(cachedLatest)}
 
-Данные: ${JSON.stringify(cachedLatest)}
-
-Правила:
-- Верни только JSON
-- rainChance: 0-100 (%)
-- confidence: 0-100 (%)
-- summary: кратко (10 слов)
-- changeIndex: Низкий|Средний|Высокий
-
-Формат:
-{"rainChance": число, "confidence": число, "summary": "текст", "changeIndex": "Низкий|Средний|Высокий"}`;
+Верни JSON:
+{"rainChance":0-100,"confidence":0-100,"summary":"кратко","changeIndex":"Низкий|Средний|Высокий"}`;
 
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 200,
+        max_tokens: 100,
         temperature: 0.3
       });
 
